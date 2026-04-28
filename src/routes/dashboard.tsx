@@ -574,10 +574,47 @@ function Field({
   );
 }
 
+const EMPTY_LICENSE: License = {
+  number: "",
+  expiry: "",
+  fileName: "",
+  fileData: "",
+  verified: false,
+  status: "pending",
+};
+
+function licenseStatusMeta(status: LicenseStatus) {
+  const map = {
+    pending: {
+      label: "Pending review",
+      icon: Clock,
+      cls: "bg-primary/15 text-primary border-primary/30",
+      desc: "Submitted. Click “Mark as verified” to simulate approval.",
+    },
+    verifying: {
+      label: "Reviewing",
+      icon: Loader2,
+      cls: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+      desc: "Our team is reviewing your document…",
+    },
+    verified: {
+      label: "Verified",
+      icon: ShieldCheck,
+      cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+      desc: "You’re all set — bookings will be faster than ever.",
+    },
+    rejected: {
+      label: "Rejected",
+      icon: ShieldAlert,
+      cls: "bg-destructive/15 text-destructive border-destructive/30",
+      desc: "Document couldn’t be verified. Please re-upload a clearer image.",
+    },
+  } as const;
+  return map[status];
+}
+
 function LicenseUpload({ license, onSave }: { license: License | null; onSave: (l: License | null) => void }) {
-  const [form, setForm] = useState<License>(
-    license ?? { number: "", expiry: "", fileName: "", fileData: "", verified: false },
-  );
+  const [form, setForm] = useState<License>(license ?? EMPTY_LICENSE);
   const [saved, setSaved] = useState(false);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -585,6 +622,21 @@ function LicenseUpload({ license, onSave }: { license: License | null; onSave: (
   useEffect(() => {
     if (license) setForm(license);
   }, [license]);
+
+  // Auto-transition: verifying → verified after 2.5s
+  useEffect(() => {
+    if (license?.status === "verifying") {
+      const t = setTimeout(() => {
+        onSave({
+          ...license,
+          status: "verified",
+          verified: true,
+          verifiedAt: new Date().toISOString(),
+        });
+      }, 2500);
+      return () => clearTimeout(t);
+    }
+  }, [license, onSave]);
 
   const handleFile = (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
@@ -603,38 +655,152 @@ function LicenseUpload({ license, onSave }: { license: License | null; onSave: (
       alert("Please upload a license image");
       return;
     }
-    onSave({ ...form, verified: false });
+    onSave({
+      ...form,
+      status: "pending",
+      verified: false,
+      submittedAt: new Date().toISOString(),
+      verifiedAt: undefined,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
   const remove = () => {
     onSave(null);
-    setForm({ number: "", expiry: "", fileName: "", fileData: "", verified: false });
+    setForm(EMPTY_LICENSE);
   };
+
+  const startVerification = () => {
+    if (!license) return;
+    onSave({ ...license, status: "verifying", verified: false });
+  };
+
+  const markVerified = () => {
+    if (!license) return;
+    onSave({
+      ...license,
+      status: "verified",
+      verified: true,
+      verifiedAt: new Date().toISOString(),
+    });
+  };
+
+  const rejectLicense = () => {
+    if (!license) return;
+    onSave({ ...license, status: "rejected", verified: false });
+  };
+
+  const resetToPending = () => {
+    if (!license) return;
+    onSave({ ...license, status: "pending", verified: false, verifiedAt: undefined });
+  };
+
+  const status: LicenseStatus = license?.status ?? "pending";
+  const meta = licenseStatusMeta(status);
+  const SIcon = meta.icon;
 
   return (
     <form onSubmit={submit} className="glass rounded-3xl border border-border p-6 md:p-8 animate-fade-up">
-      <div className="flex items-start justify-between gap-4 pb-6 border-b border-border">
+      <div className="flex flex-wrap items-start justify-between gap-4 pb-6 border-b border-border">
         <div>
-          <h3 className="font-display text-2xl font-bold">Driving License</h3>
+          <h3 className="font-display text-2xl font-bold flex items-center gap-2">
+            Driving License
+            {license?.status === "verified" && (
+              <ShieldCheck className="h-6 w-6 text-emerald-400" />
+            )}
+          </h3>
           <p className="mt-1 text-sm text-muted-foreground">
             Upload your license for faster, friction-free bookings.
           </p>
         </div>
         {license && (
           <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
-              license.verified
-                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                : "bg-primary/15 text-primary border-primary/30"
-            }`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${meta.cls}`}
           >
-            {license.verified ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
-            {license.verified ? "Verified" : "Pending review"}
+            <SIcon className={`h-3.5 w-3.5 ${status === "verifying" ? "animate-spin" : ""}`} />
+            {meta.label}
           </span>
         )}
       </div>
+
+      {/* Status banner */}
+      {license && (
+        <div
+          className={`mt-6 rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center gap-4 ${meta.cls}`}
+        >
+          <div className={`h-12 w-12 rounded-full flex items-center justify-center bg-background/40 flex-shrink-0`}>
+            <SIcon className={`h-6 w-6 ${status === "verifying" ? "animate-spin" : ""}`} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold">{meta.label}</p>
+            <p className="text-xs opacity-80 mt-0.5">{meta.desc}</p>
+            {status === "verified" && license.verifiedAt && (
+              <p className="text-[11px] opacity-70 mt-1">
+                Verified {new Date(license.verifiedAt).toLocaleString()}
+              </p>
+            )}
+          </div>
+
+          {/* Simulation controls */}
+          <div className="flex flex-wrap gap-2">
+            {status === "pending" && (
+              <>
+                <button
+                  type="button"
+                  onClick={startVerification}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary/20 hover:bg-primary/30 text-primary text-xs font-semibold border border-primary/40 transition-smooth"
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> Start review
+                </button>
+                <button
+                  type="button"
+                  onClick={markVerified}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs font-semibold border border-emerald-500/40 transition-smooth"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" /> Mark as verified
+                </button>
+              </>
+            )}
+            {status === "verifying" && (
+              <button
+                type="button"
+                onClick={markVerified}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs font-semibold border border-emerald-500/40 transition-smooth"
+              >
+                <ShieldCheck className="h-3.5 w-3.5" /> Complete now
+              </button>
+            )}
+            {status === "verified" && (
+              <button
+                type="button"
+                onClick={resetToPending}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-border text-xs font-semibold hover:bg-white/5 transition-smooth"
+              >
+                Reset demo
+              </button>
+            )}
+            {status === "rejected" && (
+              <button
+                type="button"
+                onClick={resetToPending}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-border text-xs font-semibold hover:bg-white/5 transition-smooth"
+              >
+                Retry
+              </button>
+            )}
+            {(status === "pending" || status === "verifying") && (
+              <button
+                type="button"
+                onClick={rejectLicense}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-destructive/40 text-destructive text-xs font-semibold hover:bg-destructive/10 transition-smooth"
+              >
+                Simulate reject
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-5 pt-6">
         <Field label="License number" icon={FileCheck}>
@@ -680,11 +846,18 @@ function LicenseUpload({ license, onSave }: { license: License | null; onSave: (
           {form.fileData ? (
             <div className="flex flex-col items-center gap-3">
               {form.fileData.startsWith("data:image") ? (
-                <img
-                  src={form.fileData}
-                  alt="License preview"
-                  className="max-h-48 rounded-lg border border-border"
-                />
+                <div className="relative">
+                  <img
+                    src={form.fileData}
+                    alt="License preview"
+                    className="max-h-48 rounded-lg border border-border"
+                  />
+                  {license?.status === "verified" && (
+                    <div className="absolute -top-2 -right-2 h-10 w-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-glow border-2 border-background">
+                      <ShieldCheck className="h-5 w-5 text-white" />
+                    </div>
+                  )}
+                </div>
               ) : (
                 <FileCheck className="h-10 w-10 text-primary" />
               )}
@@ -726,7 +899,7 @@ function LicenseUpload({ license, onSave }: { license: License | null; onSave: (
         )}
         {saved && (
           <span className="text-sm text-emerald-400 flex items-center gap-1.5 animate-fade-in">
-            <CheckCircle2 className="h-4 w-4" /> License saved
+            <CheckCircle2 className="h-4 w-4" /> License submitted
           </span>
         )}
       </div>

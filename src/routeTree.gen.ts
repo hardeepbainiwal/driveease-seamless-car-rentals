@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CarsRouteImport } from './routes/cars'
 import { Route as AboutRouteImport } from './routes/about'
@@ -20,6 +21,11 @@ import { Route as BookingCarIdRouteImport } from './routes/booking.$carId'
 const FaqRoute = FaqRouteImport.update({
   id: '/faq',
   path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/cars': typeof CarsRouteWithChildren
   '/contact': typeof ContactRoute
+  '/dashboard': typeof DashboardRoute
   '/faq': typeof FaqRoute
   '/booking/$carId': typeof BookingCarIdRoute
   '/cars/$carId': typeof CarsCarIdRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/cars': typeof CarsRouteWithChildren
   '/contact': typeof ContactRoute
+  '/dashboard': typeof DashboardRoute
   '/faq': typeof FaqRoute
   '/booking/$carId': typeof BookingCarIdRoute
   '/cars/$carId': typeof CarsCarIdRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/cars': typeof CarsRouteWithChildren
   '/contact': typeof ContactRoute
+  '/dashboard': typeof DashboardRoute
   '/faq': typeof FaqRoute
   '/booking/$carId': typeof BookingCarIdRoute
   '/cars/$carId': typeof CarsCarIdRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/cars'
     | '/contact'
+    | '/dashboard'
     | '/faq'
     | '/booking/$carId'
     | '/cars/$carId'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/cars'
     | '/contact'
+    | '/dashboard'
     | '/faq'
     | '/booking/$carId'
     | '/cars/$carId'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/cars'
     | '/contact'
+    | '/dashboard'
     | '/faq'
     | '/booking/$carId'
     | '/cars/$carId'
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   CarsRoute: typeof CarsRouteWithChildren
   ContactRoute: typeof ContactRoute
+  DashboardRoute: typeof DashboardRoute
   FaqRoute: typeof FaqRoute
   BookingCarIdRoute: typeof BookingCarIdRoute
 }
@@ -127,6 +140,13 @@ declare module '@tanstack/react-router' {
       path: '/faq'
       fullPath: '/faq'
       preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -189,6 +209,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   CarsRoute: CarsRouteWithChildren,
   ContactRoute: ContactRoute,
+  DashboardRoute: DashboardRoute,
   FaqRoute: FaqRoute,
   BookingCarIdRoute: BookingCarIdRoute,
 }

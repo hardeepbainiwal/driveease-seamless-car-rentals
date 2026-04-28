@@ -162,7 +162,19 @@ function DashboardPage() {
     { label: "Total Trips", value: bookings.length },
     { label: "Upcoming", value: upcoming.length },
     { label: "Favorites", value: favorites.length },
-    { label: "License", value: license?.verified ? "Verified" : license ? "Pending" : "—" },
+    {
+      label: "License",
+      value:
+        license?.status === "verified"
+          ? "Verified"
+          : license?.status === "verifying"
+            ? "Reviewing"
+            : license?.status === "rejected"
+              ? "Rejected"
+              : license
+                ? "Pending"
+                : "—",
+    },
   ];
 
   return (

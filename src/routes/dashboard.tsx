@@ -15,6 +15,10 @@ import {
   Mail,
   Phone,
   Edit3,
+  ShieldCheck,
+  ShieldAlert,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import { CARS, type Car } from "@/data/cars";
 

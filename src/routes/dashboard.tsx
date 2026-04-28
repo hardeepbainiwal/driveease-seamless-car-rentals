@@ -52,12 +52,17 @@ type Profile = {
   avatar: string;
 };
 
+type LicenseStatus = "pending" | "verifying" | "verified" | "rejected";
+
 type License = {
   number: string;
   expiry: string;
   fileName: string;
   fileData: string; // data URL
-  verified: boolean;
+  verified: boolean; // kept for backward compat
+  status: LicenseStatus;
+  submittedAt?: string;
+  verifiedAt?: string;
 };
 
 const STORAGE = {
